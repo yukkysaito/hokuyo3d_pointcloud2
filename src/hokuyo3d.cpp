@@ -29,6 +29,7 @@
 
 #include <boost/bind.hpp>
 #include <ros/ros.h>
+#include <sensor_msgs/PointCloud.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <sensor_msgs/MagneticField.h>
 #include <sensor_msgs/Imu.h>
@@ -53,21 +54,20 @@ public:
                 ping();
             }
 
-            cloud2.data.resize(((data_range_size.necho + points_size) * cloud2.point_step), 0);
-
+            cloud2.data.resize(((data_range_size.necho + points_size) * cloud2.point_step));
             // Pack scan data
-            for(int i = 0; i < data_range_size.necho; i++, points_size++)
+#if 0
+            int i;
+            for(i = 0; i < data_range_size.necho; i++)
             {
-                memcpy (&cloud2.data[i * cloud2.point_step + cloud2.fields[0].offset + points_size], &points[i].x, sizeof (float));
-                memcpy (&cloud2.data[i * cloud2.point_step + cloud2.fields[1].offset + points_size], &points[i].y, sizeof (float));
-                memcpy (&cloud2.data[i * cloud2.point_step + cloud2.fields[2].offset + points_size], &points[i].z, sizeof (float));
-                memcpy (&cloud2.data[i * cloud2.point_step + cloud2.fields[3].offset + points_size], &points[i].i, sizeof (float));
-
-                // cloud2.data.push_back((float)points[i].x);
-                // cloud2.data.push_back((float)points[i].y);
-                // cloud2.data.push_back((float)points[i].z);
-                // cloud2.data.push_back((float)points[i].i);
+                memcpy (&cloud2.data[(i + points_size) * cloud2.point_step + cloud2.fields[0].offset], &points[i].x, sizeof (float));
+                memcpy (&cloud2.data[(i + points_size) * cloud2.point_step + cloud2.fields[1].offset], &points[i].y, sizeof (float));
+                memcpy (&cloud2.data[(i + points_size) * cloud2.point_step + cloud2.fields[2].offset], &points[i].z, sizeof (float));
+                memcpy (&cloud2.data[(i + points_size) * cloud2.point_step + cloud2.fields[3].offset], &points[i].i, sizeof (float));
             }
+#endif
+            memcpy (&cloud2.data[points_size * cloud2.point_step], &points[0].x, sizeof(float) * cloud2.fields.size() * data_range_size.necho);
+            points_size += data_range_size.necho;
 
             // Publish frame
             if(range_header.frame != frame)

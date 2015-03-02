@@ -160,10 +160,10 @@ namespace vssp
 	class xyzi
 	{
 	public:
-		double x;
-		double y;
-		double z;
-		double i;
+		float x;
+		float y;
+		float z;
+		float i;
 
 		xyzi()
             {
@@ -178,7 +178,7 @@ namespace vssp
 		xyzi operator *(const data_range_intensity &data)
             {
                 xyzi ret = *this;
-                double r = data.range_mm * 0.001;
+                float r = data.range_mm * 0.001;
                 ret.i = data.intensity;
                 ret.x *= r;
                 ret.y *= r;
@@ -188,7 +188,7 @@ namespace vssp
 		xyzi operator *(const data_range_only &data)
             {
                 xyzi ret = *this;
-                double r = data.range_mm * 0.001;
+                float r = data.range_mm * 0.001;
                 ret.i = 0;
                 ret.x *= r;
                 ret.y *= r;
