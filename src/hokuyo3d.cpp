@@ -29,7 +29,6 @@
 
 #include <boost/bind.hpp>
 #include <ros/ros.h>
-#include <sensor_msgs/PointCloud.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <sensor_msgs/MagneticField.h>
 #include <sensor_msgs/Imu.h>
@@ -56,19 +55,24 @@ public:
 
             cloud2.data.resize(((data_range_size.necho + points_size) * cloud2.point_step));
             // Pack scan data
-#if 0
-            int i;
-            for(i = 0; i < data_range_size.necho; i++)
+#if 1 // check invalid rang
+            int i, invalid;
+            for(i = 0, invalid = 0; i < data_range_size.necho; i++)
             {
-                memcpy (&cloud2.data[(i + points_size) * cloud2.point_step + cloud2.fields[0].offset], &points[i].x, sizeof (float));
-                memcpy (&cloud2.data[(i + points_size) * cloud2.point_step + cloud2.fields[1].offset], &points[i].y, sizeof (float));
-                memcpy (&cloud2.data[(i + points_size) * cloud2.point_step + cloud2.fields[2].offset], &points[i].z, sizeof (float));
-                memcpy (&cloud2.data[(i + points_size) * cloud2.point_step + cloud2.fields[3].offset], &points[i].i, sizeof (float));
+                double distance= sqrt(points[i].x * points[i].x + points[i].y * points[i].y);
+                if (distance < invalid_range){
+                    invalid++;
+                    std::vector<uint8_t>::iterator it = cloud2.data.end();
+                    cloud2.data.erase(it - cloud2.point_step, it);
+                    continue;
+                }
+                memcpy (&cloud2.data[(i + points_size) * cloud2.point_step + cloud2.fields[0].offset], &points[i], sizeof (float) * cloud2.fields.size());
             }
-#endif
-            memcpy (&cloud2.data[points_size * cloud2.point_step], &points[0].x, sizeof(float) * cloud2.fields.size() * data_range_size.necho);
+            points_size += data_range_size.necho - invalid;
+#else
+            memcpy (&cloud2.data[points_size * cloud2.point_step], &points[0], sizeof(float) * cloud2.fields.size() * data_range_size.necho);
             points_size += data_range_size.necho;
-
+#endif
             // Publish frame
             if(range_header.frame != frame)
             {
@@ -160,6 +164,7 @@ public:
             nh.param("ip", ip, std::string("192.168.0.10"));
             nh.param("port", port, 10940);
             nh.param("frame_id", frame_id, std::string("hokuyo3d"));
+            nh.param("invalid_range", invalid_range, 0.30);
             pubPc2 = nh.advertise<sensor_msgs::PointCloud2>("hokuyo_cloud2", 5);
             pubImu = nh.advertise<sensor_msgs::Imu>("imu", 5);
             pubMag = nh.advertise<sensor_msgs::MagneticField>("mag", 5);
@@ -235,6 +240,7 @@ private:
     int field;
     int frame;
     int points_size;
+    double invalid_range;
 
     std::string ip;
     int port;
